@@ -1,7 +1,7 @@
 # 8Channel EGT-board
 
 This is repository for 8-Channel EGT board. The board is meant to be used in conjuntion with aftermarker engine control units to 
-measure exhaust gas temperatures in invidual cylinders. The PCB is based on eight MAX31855 chips and STM32F103C8T6 based bluepill board.
+measure exhaust gas temperatures in invidual cylinders. The PCB is based on eight MAX31855 chips and STM32F103C8T6 bluepill board.
 The sensors to be used with this need to be K-type EGT sensors with mini K-type thermocouple connectors.
 
 In order to program the bluepill, you will need FTDI breakout board and the code is meant to be used in Arduino IDE. The code should work
