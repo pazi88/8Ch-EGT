@@ -1,14 +1,16 @@
 #include "MAX31855.h"
 
-#define EGT_1-4_CAN_ADDRESS   0x201
-#define EGT_5-8_CAN_ADDRESS   0x202
+#define Sensor1_4_CAN_ADDRESS   0x20A
+#define Sensor5_8_CAN_ADDRESS   0x20B
 
 uint8_t cs[8] = { PA0, PA1, PA2, PA3, PB0, PB1, PB13, PB12 };
 int32_t rawData[8]  = { 0 };
 float EGT[8]  = { 0 };
 float ColdJunction[8]  = { 0 };
 uint8_t data14[8];    // data from EGT 1-4 that will be sent to CAN bus
-uint8_t data58[8];    // data from EGT 1-4 that will be sent to CAN bus
+uint8_t data58[8];    // data from EGT 5-8 that will be sent to CAN bus
+uint16_t CanAddress;
+byte canin_channel;
 
 MAX31855 MAX31855_chips[8] = {
   MAX31855(cs[0]),
@@ -50,17 +52,38 @@ void setup() {
 }
 
 void CheckDataRequest(){
-       SendDataToSpeeduino(); //request ok, send the data to speeduino
+  if (Serial3.read() == 'R'){
+     byte tmp0;
+     byte tmp1;
+     if ( Serial3.available() >= 3)
+     {             
+      canin_channel = Serial3.read();                    
+      tmp0 = Serial3.read();            //read in lsb of source can address 
+      tmp1 = Serial3.read();            //read in msb of source can address
+      CanAddress = tmp1<<8 | tmp0 ;
+      if (CanAddress == Sensor1_4_CAN_ADDRESS || CanAddress == Sensor5_8_CAN_ADDRESS){
+        SendDataToSpeeduino(); //request ok, send the data to speeduino
+      }
+     }
+  }
 }
 
 void SendDataToSpeeduino(){
-  for (int i=0; i<8; i++) {
-       Serial3.write(data14[i]);
+  Serial3.write("G");                      // reply "G" cmd
+  Serial3.write(1);                        //send 1 to confirm cmd received and valid
+  Serial3.write(canin_channel);            //confirms the destination channel
+  if (CanAddress == Sensor1_4_CAN_ADDRESS){
+    for (int i=0; i<8; i++) {
+        Serial3.write(data14[i]);
+    }
   }
-  for (int i=0; i<8; i++) {
-       Serial3.write(data58[i]);
+  if (CanAddress == Sensor5_8_CAN_ADDRESS){
+    for (int i=0; i<8; i++) {
+        Serial3.write(data58[i]);
+    }
   }
 }
+
 
 void loop() {
    for (int i=0; i<8; i++) {
@@ -68,26 +91,26 @@ void loop() {
      EGT[i]  = (MAX31855_chips[i].getTemperature(rawData[i]));
      ColdJunction[i]  = (MAX31855_chips[i].getColdJunctionTemperature(rawData[i]));
      if (i < 4){
-      data14[i] = lowByte(uint16_t(EGT[i]));
-      data14[i+1] = highByte(uint16_t(EGT[i]));
+      data14[2*i] = lowByte(uint16_t(EGT[i]));
+      data14[2*i+1] = highByte(uint16_t(EGT[i]));
      }
      else{
-      data58[i] = lowByte(uint16_t(EGT[i]));
-      data58[i+1] = highByte(uint16_t(EGT[i]));
+      data58[2*i-8] = lowByte(uint16_t(EGT[i]));
+      data58[2*i-7] = highByte(uint16_t(EGT[i]));
      }
       if (Serial3.available () > 0) {  //is there data on serial3, from hopefully speeduino
         CheckDataRequest(); //is there data request from speeduino
       }
       else{ //no data request from speeduino, so broadcast to CAN bus
-        //      CanSend();
+        //      CanSend(); // not implemented yet
       }
      Serial.print("EGT");
      Serial.print(i+1);
      Serial.print(" Temp: ");
-     Serial.print(EGT[i]);
+     Serial.println(EGT[i]);
      Serial.print("Cold Junction");
      Serial.print(i+1);
      Serial.print(" Temp: ");
-     Serial.print(ColdJunction[i]);
+     Serial.println(ColdJunction[i]);
   }
 }
