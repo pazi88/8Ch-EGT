@@ -8,7 +8,7 @@ In order to program the bluepill, you will need FTDI breakout board and the code
 with regular STM32 core for Arduino, but I had no luck programming it to the bluepill. But using this board manager, the code uploading
 works: http://dan.drown.org/stm32duino/package_STM32duino_index.json
 
-At this moment the code is unfinished and only capable of reading the EGT sensors. But it should be soon capable of sending data to
-speeduino by serial bus. Support for other ecus will be added later using CAN bus.
+At this moment the code is unfinished and only capable of reading the EGT sensors and sending data to speeduino through serial bus.
+See the picture for settings in TS for speeduino. Support for other ecus will be added later using CAN bus.
 
 EasyEda project link for the PCB: https://easyeda.com/pazi88/8ch_EGT
