@@ -207,12 +207,14 @@ void loop() {
       }
       else{ //no data request from speeduino, so broadcast to CAN bus
         if (i < 4){
-         CAN_TX_msg.data[i] = data14[i];
+         CAN_TX_msg.data[2*i] = data14[2*i];
+         CAN_TX_msg.data[2*i+1] = data14[2*i+1];
          CAN_TX_msg.id = Sensor1_4_CAN_ADDRESS;
          CANSend(&CAN_TX_msg);
        }
        else{
-         CAN_TX_msg.data[i] = data58[i];
+         CAN_TX_msg.data[2*i-8] = data58[2*i-8];
+         CAN_TX_msg.data[2*i-7] = data58[2*i-7];
          CAN_TX_msg.id = Sensor5_8_CAN_ADDRESS;
          CANSend(&CAN_TX_msg);
        }
