@@ -1,7 +1,29 @@
 #include "MAX31855.h"
+HardwareSerial Serial3(USART3);
 
 #define Sensor1_4_CAN_ADDRESS   0x20A //the data from sensers 1-4 will be sent using this address
 #define Sensor5_8_CAN_ADDRESS   0x20B //the data from sensers 5-8 will be sent using this address
+
+enum BITRATE{CAN_50KBPS, CAN_100KBPS, CAN_125KBPS, CAN_250KBPS, CAN_500KBPS, CAN_1000KBPS};
+
+typedef struct
+{
+  uint16_t id;
+  uint8_t  data[8];
+  uint8_t  len;
+} CAN_msg_t;
+
+CAN_msg_t CAN_TX_msg;
+
+typedef const struct
+{
+  uint8_t TS2;
+  uint8_t TS1;
+  uint8_t BRP;
+} CAN_bit_timing_config_t;
+CAN_bit_timing_config_t can_configs[6] = {{2, 13, 45}, {2, 15, 20}, {2, 13, 18}, {2, 13, 9}, {2, 15, 4}, {2, 15, 2}};
+
+extern CAN_bit_timing_config_t can_configs[6];
 
 uint8_t cs[8] = { PA0, PA1, PA2, PA3, PB0, PB1, PB13, PB12 }; //chip select pins for the MAX31855 chips
 int32_t rawData[8]  = { 0 }; //raw data from all 8 MAX31855 chips
@@ -24,10 +46,50 @@ MAX31855 MAX31855_chips[8] = {
   MAX31855(cs[7])
 };
 
+void CANInit(enum BITRATE bitrate)
+ {
+    RCC->APB1ENR |= 0x2000000UL;      // Enable CAN clock 
+    RCC->APB2ENR |= 0x1UL;            // Enable AFIO clock
+    AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
+    AFIO->MAPR   |= 0x00004000;       //  et CAN remap, use PB8, PB9
+ 
+    RCC->APB2ENR |= 0x8UL;            // Enable GPIOB clock
+    GPIOB->CRH   &= ~(0xFFUL);
+    GPIOB->CRH   |= 0xB8UL;            // Configure PB8 and PB9
+    GPIOB->ODR |= 0x1UL << 8;
+  
+    CAN1->MCR = 0x51UL;                // Set CAN to initialization mode
+     
+    // Set bit rates 
+    CAN1->BTR &= ~(((0x03) << 24) | ((0x07) << 20) | ((0x0F) << 16) | (0x1FF)); 
+    CAN1->BTR |=  (((can_configs[bitrate].TS2-1) & 0x07) << 20) | (((can_configs[bitrate].TS1-1) & 0x0F) << 16) | ((can_configs[bitrate].BRP-1) & 0x1FF);
+ 
+    // Configure Filters to default values
+    CAN1->FM1R |= 0x1C << 8;              // Assign all filters to CAN1
+    CAN1->FMR  |=   0x1UL;                // Set to filter initialization mode
+    CAN1->FA1R &= ~(0x1UL);               // Deactivate filter 0
+    CAN1->FS1R |=   0x1UL;                // Set first filter to single 32 bit configuration
+ 
+    CAN1->sFilterRegister[0].FR1 = 0x0UL; // Set filter registers to 0
+    CAN1->sFilterRegister[0].FR2 = 0x0UL; // Set filter registers to 0
+    CAN1->FM1R &= ~(0x1UL);               // Set filter to mask mode
+ 
+    CAN1->FFA1R &= ~(0x1UL);              // Apply filter to FIFO 0  
+    CAN1->FA1R  |=   0x1UL;               // Activate filter 0
+    
+    CAN1->FMR   &= ~(0x1UL);              // Deactivate initialization mode
+    CAN1->MCR   &= ~(0x1UL);              // Set CAN to normal mode 
+
+    while (CAN1->MSR & 0x1UL); 
+ 
+ }
+
 void setup() {
   MAX31855_OK_bits = 0;
   Serial.begin(115200); //debug
   Serial3.begin(115200); //data to speeduino
+  CANInit(CAN_500KBPS); //init can at 500KBPS speed
+  CAN_TX_msg.len = 8; //8 bytes in can message
 
 // begin communication to MAX31855 chips
   for (int i=0; i<8; i++) {
@@ -90,6 +152,39 @@ void SendDataToSpeeduino(){
   }
 }
 
+void CANSend(CAN_msg_t* CAN_tx_msg)
+ {
+    volatile int count = 0;
+     
+    CAN1->sTxMailBox[0].TIR   = (CAN_tx_msg->id) << 21;
+    
+    CAN1->sTxMailBox[0].TDTR &= ~(0xF);
+    CAN1->sTxMailBox[0].TDTR |= CAN_tx_msg->len & 0xFUL;
+    
+    CAN1->sTxMailBox[0].TDLR  = (((uint32_t) CAN_tx_msg->data[3] << 24) |
+                                 ((uint32_t) CAN_tx_msg->data[2] << 16) |
+                                 ((uint32_t) CAN_tx_msg->data[1] <<  8) |
+                                 ((uint32_t) CAN_tx_msg->data[0]      ));
+    CAN1->sTxMailBox[0].TDHR  = (((uint32_t) CAN_tx_msg->data[7] << 24) |
+                                 ((uint32_t) CAN_tx_msg->data[6] << 16) |
+                                 ((uint32_t) CAN_tx_msg->data[5] <<  8) |
+                                 ((uint32_t) CAN_tx_msg->data[4]      ));
+
+    CAN1->sTxMailBox[0].TIR  |= 0x1UL;
+    while(CAN1->sTxMailBox[0].TIR & 0x1UL && count++ < 1000000);
+     
+     if (!(CAN1->sTxMailBox[0].TIR & 0x1UL)) return;
+     
+     //Sends error log to screen
+     while (CAN1->sTxMailBox[0].TIR & 0x1UL)
+     {
+         Serial.println(CAN1->ESR);        
+         Serial.println(CAN1->MSR);        
+         Serial.println(CAN1->TSR);
+        
+     }
+ }
+
 void loop() {
    for (int i=0; i<8; i++) {
     if (bitRead(MAX31855_OK_bits, i) == 1){
@@ -108,7 +203,16 @@ void loop() {
         CheckDataRequest(); //there is data, but is it request from speeduino and is it for EGTs
       }
       else{ //no data request from speeduino, so broadcast to CAN bus
-        //      CanSend(); // not implemented yet
+        if (i < 4){
+         CAN_TX_msg.data[i] = data14[i];
+         CAN_TX_msg.id = Sensor1_4_CAN_ADDRESS;
+         CANSend(&CAN_TX_msg);
+       }
+       else{
+         CAN_TX_msg.data[i] = data58[i];
+         CAN_TX_msg.id = Sensor5_8_CAN_ADDRESS;
+         CANSend(&CAN_TX_msg);
+       }
       }
      Serial.print("EGT");
      Serial.print(i+1);
