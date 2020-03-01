@@ -1,4 +1,7 @@
 #include "MAX31855.h"
+#ifdef ARDUINO_BLUEPILL_F103C8
+HardwareSerial Serial3(USART3); //for some reason this isn't defined in arduino_core_stm32
+#endif
 
 #define Sensor1_4_CAN_ADDRESS   0x20A //the data from sensers 1-4 will be sent using this address
 #define Sensor5_8_CAN_ADDRESS   0x20B //the data from sensers 5-8 will be sent using this address
