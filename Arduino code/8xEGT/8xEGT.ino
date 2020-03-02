@@ -107,12 +107,12 @@ void loop() {
       data58[2*i-8] = lowByte(uint16_t(EGT[i]));
       data58[2*i-7] = highByte(uint16_t(EGT[i]));
      }
-      if (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
+      while (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
         CheckDataRequest(); //there is data, but is it request from speeduino and is it for EGTs
       }
-      else{ //no data request from speeduino, so broadcast to CAN bus
+   //   else{ //no data request from speeduino, so broadcast to CAN bus
         //      CanSend(); // not implemented yet
-      }
+  //    }
      Serial.print("EGT");
      Serial.print(i+1);
      Serial.print(" Temp: ");
