@@ -53,12 +53,12 @@ void CANInit(enum BITRATE bitrate)
     RCC->APB1ENR |= 0x2000000UL;      // Enable CAN clock 
     RCC->APB2ENR |= 0x1UL;            // Enable AFIO clock
     AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
-    AFIO->MAPR   |= 0x00004000;       //  et CAN remap, use PB8, PB9
+    AFIO->MAPR   |= 0x00000000;       //  et CAN remap, use PA11, PA12
  
-    RCC->APB2ENR |= 0x8UL;            // Enable GPIOB clock
-    GPIOB->CRH   &= ~(0xFFUL);
-    GPIOB->CRH   |= 0xB8UL;            // Configure PB8 and PB9
-    GPIOB->ODR |= 0x1UL << 8;
+    RCC->APB2ENR |= 0x4UL;            // Enable GPIOA clock (bit2 to 1)
+    GPIOA->CRH   &= 0xFFF00FFF;
+    GPIOA->CRH   |= 0xB8000UL;            // Configure PA11 and PA12
+    GPIOA->ODR   |= 0x1000UL;
   
     CAN1->MCR = 0x51UL;                // Set CAN to initialization mode
      
