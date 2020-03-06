@@ -3,7 +3,6 @@
 HardwareSerial Serial3(USART3); //for some reason this isn't defined in arduino_core_stm32
 #endif
 
-
 #define Sensor1_4_CAN_ADDRESS   0x20A //the data from sensers 1-4 will be sent using this address
 #define Sensor5_8_CAN_ADDRESS   0x20B //the data from sensers 5-8 will be sent using this address
 
@@ -195,17 +194,20 @@ void loop() {
      EGT[i]  = (MAX31855_chips[i].getTemperature(rawData[i]));
      ColdJunction[i]  = (MAX31855_chips[i].getColdJunctionTemperature(rawData[i]));
      if (i < 4){
-      data14[2*i] = lowByte(uint16_t(EGT[i]));
-      data14[2*i+1] = highByte(uint16_t(EGT[i]));
+      if (EGT[i] < 2001){ //just in case filter if MAX31855 gives faulty value. 2000c is maximum that it gives out.
+        data14[2*i] = lowByte(uint16_t(EGT[i]));
+        data14[2*i+1] = highByte(uint16_t(EGT[i]));
+      }
      }
      else{
-      data58[2*i-8] = lowByte(uint16_t(EGT[i]));
-      data58[2*i-7] = highByte(uint16_t(EGT[i]));
+      if (EGT[i] < 2001){
+        data58[2*i-8] = lowByte(uint16_t(EGT[i]));
+        data58[2*i-7] = highByte(uint16_t(EGT[i]));
+      }
      }
-      if (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
+      while (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
         CheckDataRequest(); //there is data, but is it request from speeduino and is it for EGTs
       }
-      else{ //no data request from speeduino, so broadcast to CAN bus
         if (i < 4){
          CAN_TX_msg.data[2*i] = data14[2*i];
          CAN_TX_msg.data[2*i+1] = data14[2*i+1];
@@ -218,7 +220,6 @@ void loop() {
          CAN_TX_msg.id = Sensor5_8_CAN_ADDRESS;
          CANSend(&CAN_TX_msg);
        }
-      }
      Serial.print("EGT");
      Serial.print(i+1);
      Serial.print(" Temp: ");
