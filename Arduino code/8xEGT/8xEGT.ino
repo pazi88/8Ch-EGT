@@ -65,11 +65,13 @@ void CANInit(enum BITRATE bitrate)
     CAN1->BTR &= ~(((0x03) << 24) | ((0x07) << 20) | ((0x0F) << 16) | (0x1FF)); 
     CAN1->BTR |=  (((can_configs[bitrate].TS2-1) & 0x07) << 20) | (((can_configs[bitrate].TS1-1) & 0x0F) << 16) | ((can_configs[bitrate].BRP-1) & 0x1FF);
  
-    // Configure Filters to default values
-    CAN1->FM1R |= 0x1C << 8;              // Assign all filters to CAN1
+// Configure Filters to default values
     CAN1->FMR  |=   0x1UL;                // Set to filter initialization mode
+    CAN1->FMR  &= 0xFFFFC0FF;             // Clear CAN2 start bank
+    CAN1->FMR  |= 0x1C << 8;              // Assign all filters to CAN1
     CAN1->FA1R &= ~(0x1UL);               // Deactivate filter 0
     CAN1->FS1R |=   0x1UL;                // Set first filter to single 32 bit configuration
+
  
     CAN1->sFilterRegister[0].FR1 = 0x0UL; // Set filter registers to 0
     CAN1->sFilterRegister[0].FR2 = 0x0UL; // Set filter registers to 0
