@@ -3,7 +3,6 @@
 HardwareSerial Serial3(USART3); //for some reason this isn't defined in arduino_core_stm32
 #endif
 
-
 #define Sensor1_4_CAN_ADDRESS   0x20A //the data from sensers 1-4 will be sent using this address
 #define Sensor5_8_CAN_ADDRESS   0x20B //the data from sensers 5-8 will be sent using this address
 
@@ -15,8 +14,6 @@ typedef struct
   uint8_t  data[8];
   uint8_t  len;
 } CAN_msg_t;
-
-CAN_msg_t CAN_TX_msg;
 
 typedef const struct
 {
@@ -32,8 +29,8 @@ uint8_t cs[8] = { PA0, PA1, PA2, PA3, PB0, PB1, PB13, PB12 }; //chip select pins
 int32_t rawData[8]  = { 0 }; //raw data from all 8 MAX31855 chips
 float EGT[8]  = { 0 }; //calculated EGT values from all 8 MAX31855 chips
 float ColdJunction[8]  = { 0 }; //calculated cold junction temperatures from all 8 MAX31855 chips, not needed for any other than debugging
-uint8_t data14[8];    // data from EGT 1-4 that will be sent to CAN bus
-uint8_t data58[8];    // data from EGT 5-8 that will be sent to CAN bus
+CAN_msg_t CAN_msg_14;    // data from EGT 1-4 that will be sent to CAN bus
+CAN_msg_t CAN_msg_58;    // data from EGT 5-8 that will be sent to CAN bus
 uint16_t CanAddress;
 byte canin_channel;
 byte MAX31855_OK_bits; // this is used to check if all MAX31855 chips are working or even installed and code skips the ones that don't work.
@@ -53,13 +50,13 @@ void CANInit(enum BITRATE bitrate)
  {
     RCC->APB1ENR |= 0x2000000UL;      // Enable CAN clock 
     RCC->APB2ENR |= 0x1UL;            // Enable AFIO clock
-    AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
-    AFIO->MAPR   |= 0x00004000;       //  et CAN remap, use PB8, PB9
+//    AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
+//    AFIO->MAPR   |= 0x00004000;       //  et CAN remap, use PB8, PB9
  
     RCC->APB2ENR |= 0x8UL;            // Enable GPIOB clock
-    GPIOB->CRH   &= ~(0xFFUL);
-    GPIOB->CRH   |= 0xB8UL;            // Configure PB8 and PB9
-    GPIOB->ODR |= 0x1UL << 8;
+//    GPIOB->CRH   &= ~(0xFFUL);
+//    GPIOB->CRH   |= 0xB8UL;            // Configure PB8 and PB9
+//    GPIOB->ODR |= 0x1UL << 8;
   
     CAN1->MCR = 0x51UL;                // Set CAN to initialization mode
      
@@ -92,7 +89,10 @@ void setup() {
   Serial.begin(115200); //debug
   Serial3.begin(115200); //data to speeduino
   CANInit(CAN_500KBPS); //init can at 500KBPS speed
-  CAN_TX_msg.len = 8; //8 bytes in can message
+  CAN_msg_14.len = 8; //8 bytes in can message
+  CAN_msg_58.len = 8;
+  CAN_msg_14.id = Sensor1_4_CAN_ADDRESS;
+  CAN_msg_58.id = Sensor5_8_CAN_ADDRESS;
 
 // begin communication to MAX31855 chips
   for (int i=0; i<8; i++) {
@@ -145,12 +145,12 @@ void SendDataToSpeeduino(){
   Serial3.write(canin_channel);            //confirms the destination channel
   if (CanAddress == Sensor1_4_CAN_ADDRESS){
     for (int i=0; i<8; i++) {
-        Serial3.write(data14[i]);
+        Serial3.write(CAN_msg_14.data[i]);
     }
   }
   if (CanAddress == Sensor5_8_CAN_ADDRESS){
     for (int i=0; i<8; i++) {
-        Serial3.write(data58[i]);
+        Serial3.write(CAN_msg_58.data[i]);
     }
   }
 }
@@ -195,28 +195,22 @@ void loop() {
      EGT[i]  = (MAX31855_chips[i].getTemperature(rawData[i]));
      ColdJunction[i]  = (MAX31855_chips[i].getColdJunctionTemperature(rawData[i]));
      if (i < 4){
-      data14[2*i] = lowByte(uint16_t(EGT[i]));
-      data14[2*i+1] = highByte(uint16_t(EGT[i]));
+      CAN_msg_14.data[2*i] = lowByte(uint16_t(EGT[i]));
+      CAN_msg_14.data[2*i+1] = highByte(uint16_t(EGT[i]));
      }
      else{
-      data58[2*i-8] = lowByte(uint16_t(EGT[i]));
-      data58[2*i-7] = highByte(uint16_t(EGT[i]));
+      CAN_msg_58.data[2*i-8] = lowByte(uint16_t(EGT[i]));
+      CAN_msg_58.data[2*i-7] = highByte(uint16_t(EGT[i]));
      }
       if (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
         CheckDataRequest(); //there is data, but is it request from speeduino and is it for EGTs
       }
       else{ //no data request from speeduino, so broadcast to CAN bus
         if (i < 4){
-         CAN_TX_msg.data[2*i] = data14[2*i];
-         CAN_TX_msg.data[2*i+1] = data14[2*i+1];
-         CAN_TX_msg.id = Sensor1_4_CAN_ADDRESS;
-         CANSend(&CAN_TX_msg);
+         CANSend(&CAN_msg_14);
        }
        else{
-         CAN_TX_msg.data[2*i-8] = data58[2*i-8];
-         CAN_TX_msg.data[2*i-7] = data58[2*i-7];
-         CAN_TX_msg.id = Sensor5_8_CAN_ADDRESS;
-         CANSend(&CAN_TX_msg);
+         CANSend(&CAN_msg_58);
        }
       }
      Serial.print("EGT");
