@@ -50,13 +50,14 @@ void CANInit(enum BITRATE bitrate)
  {
     RCC->APB1ENR |= 0x2000000UL;      // Enable CAN clock 
     RCC->APB2ENR |= 0x1UL;            // Enable AFIO clock
-//    AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
-//    AFIO->MAPR   |= 0x00004000;       //  et CAN remap, use PB8, PB9
+
+    AFIO->MAPR   &= 0xFFFF9FFF;       // reset CAN remap
+    AFIO->MAPR   |= 0x00000000;       //  et CAN remap, use PA11, PA12
  
-    RCC->APB2ENR |= 0x8UL;            // Enable GPIOB clock
-//    GPIOB->CRH   &= ~(0xFFUL);
-//    GPIOB->CRH   |= 0xB8UL;            // Configure PB8 and PB9
-//    GPIOB->ODR |= 0x1UL << 8;
+    RCC->APB2ENR |= 0x4UL;            // Enable GPIOA clock (bit2 to 1)
+    GPIOA->CRH   &= 0xFFF00FFF;
+    GPIOA->CRH   |= 0xB8000UL;            // Configure PA11 and PA12
+    GPIOA->ODR   |= 0x1000UL;
   
     CAN1->MCR = 0x51UL;                // Set CAN to initialization mode
      
@@ -202,17 +203,15 @@ void loop() {
       CAN_msg_58.data[2*i-8] = lowByte(uint16_t(EGT[i]));
       CAN_msg_58.data[2*i-7] = highByte(uint16_t(EGT[i]));
      }
-      if (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
-        CheckDataRequest(); //there is data, but is it request from speeduino and is it for EGTs
+      while (Serial3.available () > 0) {  //is there data on serial3, presumably from speeduino
+        CheckDataRequest(); //there is data, but is request from speeduino and is it for EGTs
       }
-      else{ //no data request from speeduino, so broadcast to CAN bus
         if (i < 4){
          CANSend(&CAN_msg_14);
        }
        else{
          CANSend(&CAN_msg_58);
        }
-      }
      Serial.print("EGT");
      Serial.print(i+1);
      Serial.print(" Temp: ");
