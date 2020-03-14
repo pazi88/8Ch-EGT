@@ -5,8 +5,7 @@ measure exhaust gas temperatures in invidual cylinders. The PCB is based on eigh
 The sensors to be used with this need to be K-type EGT sensors with mini K-type thermocouple connectors.
 
 In order to program the bluepill, you will need FTDI breakout board and the code is meant to be used in Arduino IDE. The code works
-with regular STM32 core board manager for Arduino (https://github.com/stm32duino/BoardManagerFiles/raw/master/STM32/package_stm_index.json), 
-and also using this board manager too: http://dan.drown.org/stm32duino/package_STM32duino_index.json
+with regular STM32 core board manager for Arduino (https://github.com/stm32duino/BoardManagerFiles/raw/master/STM32/package_stm_index.json)
 
 At this moment the code is unfinished and only capable of reading the EGT sensors and sending data to speeduino through serial bus.
 See the picture for settings in TS for speeduino. Support for other ecus will be added later using CAN bus.
