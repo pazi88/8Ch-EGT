@@ -1,4 +1,4 @@
-# 8Channel EGT-board
+# 8-Channel EGT-board
 ![alt text](https://pazi88.kuvat.fi/kuvat/Projektikuvat/Random%20projektit/8xEGT/20200301_214702.jpg?img=smaller)
 
 This is repository for 8-Channel EGT board. The board is meant to be used in conjuntion with aftermarker engine control units to 
