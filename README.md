@@ -1,5 +1,5 @@
 # 8Channel EGT-board
-![alt text] (https://pazi88.kuvat.fi/kuvat/Projektikuvat/Random%20projektit/8xEGT/20200301_214702.jpg?img=smaller)
+![alt text](https://pazi88.kuvat.fi/kuvat/Projektikuvat/Random%20projektit/8xEGT/20200301_214702.jpg?img=smaller)
 
 This is repository for 8-Channel EGT board. The board is meant to be used in conjuntion with aftermarker engine control units to 
 measure exhaust gas temperatures in invidual cylinders. The PCB is based on eight MAX31855 chips and STM32F103C8T6 bluepill board.
