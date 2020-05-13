@@ -12,9 +12,6 @@ Use these settings in Arduino IDE to compile and upload the code. Choose correct
 ![alt text](https://raw.githubusercontent.com/pazi88/8Ch-EGT/master/Arduino%20IDE%20settings.png)
 
 At this moment the code is not 100% tested, but it reads the temp from EGT sensors and sends data through serial and CAN bus.
-Speeduino will be connected through serial bus and other Aftermarket ECUs will use CAN-bus.
-Here are settings for TunerStudio to be able to use this EGT box with Speeduino:
-![alt text](https://raw.githubusercontent.com/pazi88/8Ch-EGT/master/Speeduino_settings.png)
 
 The board is designed to be used in Hammond case number: 1455L1201 If you don't want silver case, with part number 1455L1201BK, you
 get black case. 1455L1201BU gives blue case and 1455L1201RD red case. Link to manufacturers site: https://www.hammfg.com/part/1455L1201
