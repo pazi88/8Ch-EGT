@@ -88,6 +88,7 @@ void CANInit(enum BITRATE bitrate)
  }
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
   MAX31855_OK_bits = 0;
   Serial.begin(115200); //debug
   Serial3.begin(115200); //data to speeduino
@@ -195,7 +196,32 @@ void loop() {
    for (int i=0; i<8; i++) {
     if (bitRead(MAX31855_OK_bits, i) == 1){
      rawData[i] = MAX31855_chips[i].readRawData();
-     EGT[i]  = (MAX31855_chips[i].getTemperature(rawData[i]));
+     Serial.print("EGT");
+     Serial.print(i+1);
+     switch (MAX31855_chips[i].detectThermocouple(rawData[i]))
+     {
+       case MAX31855_THERMOCOUPLE_OK:
+         EGT[i]  = (MAX31855_chips[i].getTemperature(rawData[i]));
+         Serial.print(" Temp: ");
+         Serial.println(EGT[i]);
+         break;
+       case MAX31855_THERMOCOUPLE_SHORT_TO_VCC:
+         Serial.println(" SHORT TO VCC");
+         EGT[i]  = 2000;
+         break;
+       case MAX31855_THERMOCOUPLE_SHORT_TO_GND:
+         Serial.println(" SHORT TO GND");
+         EGT[i]  = 3000;
+         break;
+       case MAX31855_THERMOCOUPLE_NOT_CONNECTED:
+         Serial.println(" NOT CONNECTED");
+         EGT[i]  = 4000;
+         break;
+       default:
+         Serial.println(" MAX31855 ERROR");
+         EGT[i]  = 5000;
+         break;
+     }
      ColdJunction[i]  = (MAX31855_chips[i].getColdJunctionTemperature(rawData[i]));
      if (i < 4){
       CAN_msg_14.data[2*i] = lowByte(uint16_t(EGT[i]));
@@ -214,14 +240,11 @@ void loop() {
        else{
          CANSend(&CAN_msg_58);
        }
-     Serial.print("EGT");
-     Serial.print(i+1);
-     Serial.print(" Temp: ");
-     Serial.println(EGT[i]);
      Serial.print("Cold Junction");
      Serial.print(i+1);
      Serial.print(" Temp: ");
      Serial.println(ColdJunction[i]);
+     if (i == 1){ digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); } // Just flash bluilt in led in bluepill to see that the whole thing is working
     }
   }
 }
