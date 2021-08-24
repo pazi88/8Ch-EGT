@@ -1,6 +1,6 @@
 # Instructions for Speeduino
 
-To use this EGT box with speeduino, go to "Accesories" -tab and open "Canbus/Secondary Serial IO interface" -settings. There enable the Second Serial:
+To use this EGT box with speeduino, go to "Accesories" -tab and open "Canbus/Secondary Serial IO interface" -settings. There enable the Second Serial (and internal canbus if available):
 ![alt text](https://raw.githubusercontent.com/pazi88/8Ch-EGT/master/Speeduino%20instructions/Secondary_serial.png)
 
 Then go to "External Auxilary Input Channel Configuration" -settings and use these settings to make the EGT box work:
